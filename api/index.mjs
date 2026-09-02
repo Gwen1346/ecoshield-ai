@@ -1,18 +1,13 @@
-import express from 'express';
-import cors from 'cors';
 import { GoogleGenAI } from '@google/genai';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const app = express();
-
-app.use(cors());
-app.use(express.json());
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-app.post('/api/analyze-purchase', async (req, res) => {
+export default async function handler(req, res) {
+  // Hanya izinkan method POST
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method Not Allowed' });
+  }
+
   try {
     const { namaBarang, hargaBarang, tabungan } = req.body;
 
@@ -45,11 +40,9 @@ app.post('/api/analyze-purchase', async (req, res) => {
     });
 
     const resultJson = JSON.parse(response.text);
-    res.json({ success: true, ...resultJson });
+    return res.status(200).json({ success: true, ...resultJson });
   } catch (error) {
     console.error("Error AI:", error);
-    res.status(500).json({ success: false, message: 'Gagal menganalisis dengan AI.' });
+    return res.status(500).json({ success: false, message: 'Gagal menganalisis dengan AI.' });
   }
-});
-
-export default app;
+}
