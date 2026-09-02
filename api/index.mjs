@@ -1,12 +1,15 @@
+import express from 'express';
+import cors from 'cors';
 import { GoogleGenAI } from '@google/genai';
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
-
+app.post('/api/analyze-purchase', async (req, res) => {
   try {
     const { namaBarang, hargaBarang, tabungan } = req.body;
 
@@ -39,9 +42,11 @@ export default async function handler(req, res) {
     });
 
     const resultJson = JSON.parse(response.text);
-    return res.status(200).json({ success: true, ...resultJson });
+    res.json({ success: true, ...resultJson });
   } catch (error) {
     console.error("Error AI:", error);
-    return res.status(500).json({ success: false, message: 'Gagal menganalisis dengan AI.' });
+    res.status(500).json({ success: false, message: 'Gagal menganalisis dengan AI.' });
   }
-}
+});
+
+export default app;
