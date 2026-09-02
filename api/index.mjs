@@ -1,35 +1,54 @@
 import express from 'express';
+import cors from 'cors';
+import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 dotenv.config();
 
 const app = express();
+
+app.use(cors());
 app.use(express.json());
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-app.post('/api/analyze', async (req, res) => {
+app.post('/api/analyze-purchase', async (req, res) => {
   try {
-    const { item, price, category } = req.body;
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
-    const prompt = `Analisis pembelian berikut untuk anak muda/Gen Z di Indonesia. 
-    Barang: ${item}, Harga: Rp ${price}, Kategori: ${category}. 
-    Berikan respon JSON dengan format: 
-    { "recommendation": "BUY" | "PASS" | "THINK", "ecoScore": number, "reasoning": "string" }`;
+    const { namaBarang, hargaBarang, tabungan } = req.body;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    
-    if (jsonMatch) {
-      res.json(JSON.parse(jsonMatch[0]));
-    } else {
-      res.status(500).json({ error: "Gagal memproses analisis AI" });
-    }
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const prompt = `
+      Kamu adalah EcoShield AI, asisten keuangan cerdas & ramah untuk generasi muda.
+      Analisis rencana pembelian berikut:
+      - Nama Barang: ${namaBarang}
+      - Harga: Rp ${hargaBarang}
+      - Tabungan Saat Ini: Rp ${tabungan}
+
+      Kembalikan respon HANYA dalam format JSON valid dengan struktur:
+      {
+        "status": "BAHAYA" | "WASPADA" | "AMAN",
+        "analysis": "Pesan analisis singkat max 3 kalimat gaya anak muda",
+        "greenReturn1Year": "Estimasi nilai uang jika diinvestasikan ke Reksa Dana ESG selama 1 tahun (asumsi return 6-8%)"
+      }
+
+      Kriteria Status:
+      - BAHAYA: Jika harga barang > 30% dari tabungan.
+      - WASPADA: Jika harga barang 15% - 30% dari tabungan.
+      - AMAN: Jika harga barang < 15% dari tabungan.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const resultJson = JSON.parse(response.text);
+    res.json({ success: true, ...resultJson });
+  } catch (error) {
+    console.error("Error AI:", error);
+    res.status(500).json({ success: false, message: 'Gagal menganalisis dengan AI.' });
   }
 });
 
