@@ -1,11 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import { GoogleGenAI } from '@google/genai';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static('.'));
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -42,10 +46,10 @@ app.post('/api/analyze-purchase', async (req, res) => {
     });
 
     const resultJson = JSON.parse(response.text);
-    res.json({ success: true, ...resultJson });
+    return res.json({ success: true, ...resultJson });
   } catch (error) {
     console.error("Error AI:", error);
-    res.status(500).json({ success: false, message: 'Gagal menganalisis dengan AI.' });
+    return res.status(500).json({ success: false, message: 'Gagal menganalisis dengan AI.' });
   }
 });
 
