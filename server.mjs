@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+// Tambahkan atau ubah baris paling bawah menjadi seperti ini:
+export default app;
 
 dotenv.config();
 
